@@ -23,7 +23,7 @@ export function ScreenCaptureProvider({ children }: { children: ReactNode }) {
       let mediaStream: MediaStream;
 
       if (window.electron) {
-        const sourceId = await window.electron.ipcRenderer.invoke('get-screen-capture');
+        const { id, size } = await window.electron.ipcRenderer.invoke('get-screen-capture');
 
         const displayMediaOptions: DisplayMediaStreamOptions = {
           video: {
@@ -31,11 +31,11 @@ export function ScreenCaptureProvider({ children }: { children: ReactNode }) {
             // @ts-expect-error
             mandatory: {
               chromeMediaSource: "desktop",
-              chromeMediaSourceId: sourceId,
-              minWidth: 1280,
-              maxWidth: 1280,
-              minHeight: 720,
-              maxHeight: 720,
+              chromeMediaSourceId: id,
+              minWidth: size.width,
+              maxWidth: size.width,
+              minHeight: size.height,
+              maxHeight: size.height,
             },
           },
           audio: false,
@@ -44,10 +44,20 @@ export function ScreenCaptureProvider({ children }: { children: ReactNode }) {
         mediaStream = await navigator.mediaDevices.getUserMedia(displayMediaOptions);
       } else {
         const displayMediaOptions: DisplayMediaStreamOptions = {
-          video: true,
+          video: {
+            width: { ideal: screen.width },
+            height: { ideal: screen.height },
+          } as MediaTrackConstraints,
           audio: false,
         };
         mediaStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+
+        // Explicitly request full resolution from the video track
+        const track = mediaStream.getVideoTracks()[0];
+        await track.applyConstraints({
+          width: { ideal: screen.width },
+          height: { ideal: screen.height },
+        });
       }
 
       setStream(mediaStream);

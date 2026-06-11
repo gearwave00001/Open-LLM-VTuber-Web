@@ -69,7 +69,7 @@ function setupIPC(): void {
 
   ipcMain.handle('get-screen-capture', async () => {
     const sources = await desktopCapturer.getSources({ types: ['screen'] });
-    return sources[0].id;
+    return { id: sources[0].id, size: sources[0].size };
   });
 }
 
